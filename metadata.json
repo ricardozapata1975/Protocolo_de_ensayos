@@ -1,0 +1,5 @@
+{
+  "name": "PX Control - Protocolo de Ensayos",
+  "description": "Aplicación para la generación de informes de protocolo de ensayos de programas siguiendo la norma ISO 9001, con exportación a PDF profesional.",
+  "requestFramePermissions": []
+}
