@@ -17,6 +17,7 @@ type FormID = 'F-OP-01' | 'F-OP-02' | 'F-OP-03' | 'F-OP-04' | 'F-OP-05' | 'P-OP-
 const App: React.FC = () => {
   const [activeForm, setActiveForm] = useState<FormID>('F-OP-04');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'form' | 'preview'>('form');
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     if (typeof window !== 'undefined') return (localStorage.getItem('theme') as 'light' | 'dark') || 'light';
@@ -152,15 +153,28 @@ const App: React.FC = () => {
       <input type="file" accept=".json" ref={fileInputRef} onChange={handleImportJSON} className="hidden" />
       <input type="file" accept="image/*" ref={logoInputRef} onChange={handleLogoUpload} className="hidden" />
 
-      {/* Sidebar Modular */}
-      <aside className={`no-print fixed inset-y-0 left-0 z-50 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 transition-all duration-300 ${isSidebarOpen ? 'w-72' : 'w-20'}`}>
+      {/* Fondo oscuro al abrir el menú en móvil */}
+      {isMobileSidebarOpen && (
+        <div 
+          className="no-print fixed inset-0 z-40 bg-slate-900/60 backdrop-blur-sm lg:hidden" 
+          onClick={() => setIsMobileSidebarOpen(false)}
+        />
+      )}
+
+      {/* Sidebar Modular: drawer deslizable en móvil, fijo en escritorio */}
+      <aside className={`no-print fixed inset-y-0 left-0 z-50 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 transition-all duration-300 w-72 ${isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 ${isSidebarOpen ? 'lg:w-72' : 'lg:w-20'}`}>
         <div className="h-full flex flex-col">
           <div className="p-6 flex items-center justify-between border-b border-slate-100 dark:border-slate-800">
-            <div className={`flex items-center gap-3 ${!isSidebarOpen && 'hidden'}`}>
+            <div className={`flex items-center gap-3 ${!isSidebarOpen && 'lg:hidden'}`}>
               <div className="w-8 h-8 flex items-center justify-center overflow-hidden">{LOGO_SVG("w-full h-full")}</div>
               <span className="font-black text-slate-800 dark:text-white">PX ISO 9001</span>
             </div>
-            <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400">
+            {/* Cerrar (solo móvil) */}
+            <button onClick={() => setIsMobileSidebarOpen(false)} className="lg:hidden p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400">
+              <X size={20} />
+            </button>
+            {/* Colapsar/expandir (solo escritorio) */}
+            <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="hidden lg:block p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400">
               {isSidebarOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
           </div>
@@ -168,7 +182,7 @@ const App: React.FC = () => {
           <nav className="flex-1 p-4 space-y-8 overflow-y-auto">
             {menuItems.map((group, idx) => (
               <div key={idx} className="space-y-2">
-                {isSidebarOpen && <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">{group.section}</p>}
+                <p className={`text-[10px] font-black text-slate-400 uppercase tracking-widest px-2 ${!isSidebarOpen && 'lg:hidden'}`}>{group.section}</p>
                 {group.items.map((item) => (
                   <button
                     key={item.id}
@@ -176,19 +190,18 @@ const App: React.FC = () => {
                       if (item.active) {
                         setActiveForm(item.id as FormID);
                         setActiveTab('form');
+                        setIsMobileSidebarOpen(false);
                       }
                     }}
                     className={`w-full flex items-center gap-4 p-3 rounded-xl transition-all group relative ${
                       activeForm === item.id ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'
                     } ${!item.active && 'opacity-40 cursor-not-allowed'}`}
                   >
-                    <item.icon size={22} />
-                    {isSidebarOpen && (
-                      <div className="flex flex-col items-start overflow-hidden">
-                        <span className="text-sm font-bold truncate">{item.label}</span>
-                        <span className="text-[9px] font-medium opacity-60 uppercase">{item.code}</span>
-                      </div>
-                    )}
+                    <item.icon size={22} className="flex-shrink-0" />
+                    <div className={`flex flex-col items-start overflow-hidden ${!isSidebarOpen && 'lg:hidden'}`}>
+                      <span className="text-sm font-bold truncate">{item.label}</span>
+                      <span className="text-[9px] font-medium opacity-60 uppercase">{item.code}</span>
+                    </div>
                   </button>
                 ))}
               </div>
@@ -200,49 +213,57 @@ const App: React.FC = () => {
               onClick={() => setTheme(t => t === 'light' ? 'dark' : 'light')} 
               className="w-full flex items-center gap-4 p-3 rounded-xl text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
             >
-              {theme === 'light' ? <Moon size={22} /> : <Sun size={22} />}
-              {isSidebarOpen && <span className="text-sm font-bold">{theme === 'light' ? 'Modo Oscuro' : 'Modo Claro'}</span>}
+              {theme === 'light' ? <Moon size={22} className="flex-shrink-0" /> : <Sun size={22} className="flex-shrink-0" />}
+              <span className={`text-sm font-bold ${!isSidebarOpen && 'lg:hidden'}`}>{theme === 'light' ? 'Modo Oscuro' : 'Modo Claro'}</span>
             </button>
           </div>
         </div>
       </aside>
 
       {/* Main Content - NOTA: print:ml-0 remueve el margen del sidebar al imprimir para que quede centrado */}
-      <div className={`flex-1 flex flex-col min-h-screen transition-all duration-300 ${isSidebarOpen ? 'ml-72 print:ml-0' : 'ml-20 print:ml-0'}`}>
+      <div className={`flex-1 min-w-0 flex flex-col min-h-screen transition-all duration-300 ml-0 ${isSidebarOpen ? 'lg:ml-72' : 'lg:ml-20'} print:ml-0`}>
         
-        <header className="no-print bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 sticky top-0 z-40 px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-             <div className="w-10 h-10 flex-shrink-0 flex items-center justify-center overflow-hidden">
+        <header className="no-print bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 sticky top-0 z-30 px-3 sm:px-6 py-3 sm:py-4 flex flex-wrap items-center justify-between gap-y-3 gap-x-2">
+          <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+             {/* Botón hamburguesa (solo móvil) */}
+             <button 
+               onClick={() => setIsMobileSidebarOpen(true)} 
+               className="lg:hidden p-2 -ml-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 flex-shrink-0"
+               title="Abrir menú"
+             >
+               <Menu size={22} />
+             </button>
+             <div className="w-9 h-9 sm:w-10 sm:h-10 flex-shrink-0 flex items-center justify-center overflow-hidden">
                 {customLogo ? (
                   <div className="w-full h-full flex items-center justify-center" dangerouslySetInnerHTML={{ __html: customLogo }} />
                 ) : (
                   LOGO_SVG("w-full h-full")
                 )}
              </div>
-             <div>
-                <h1 className="text-lg font-bold dark:text-white leading-none">{activeForm} (Rev.0)</h1>
-                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Sistema de Gestión de Calidad</p>
+             <div className="min-w-0">
+                <h1 className="text-base sm:text-lg font-bold dark:text-white leading-none truncate">{activeForm} (Rev.0)</h1>
+                <p className="text-[9px] sm:text-[10px] text-slate-500 font-bold uppercase tracking-widest truncate">Sistema de Gestión de Calidad</p>
              </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5 sm:gap-3 flex-wrap">
             <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
               <button 
                 onClick={() => setActiveTab('form')} 
-                className={`px-4 py-1.5 rounded-lg text-xs font-black uppercase transition-colors ${activeTab === 'form' ? 'bg-white dark:bg-slate-700 text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                className={`px-3 sm:px-4 py-1.5 rounded-lg text-[11px] sm:text-xs font-black uppercase transition-colors ${activeTab === 'form' ? 'bg-white dark:bg-slate-700 text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
               >
                 Editor
               </button>
               <button 
                 onClick={() => setActiveTab('preview')} 
-                className={`px-4 py-1.5 rounded-lg text-xs font-black uppercase transition-colors ${activeTab === 'preview' ? 'bg-white dark:bg-slate-700 text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                className={`px-3 sm:px-4 py-1.5 rounded-lg text-[11px] sm:text-xs font-black uppercase transition-colors ${activeTab === 'preview' ? 'bg-white dark:bg-slate-700 text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
               >
                 Vista Previa
               </button>
             </div>
             
             {(activeForm === 'F-OP-04' || activeForm === 'F-OP-01') && (
-              <div className="flex gap-1 ml-2 mr-2 border-x border-slate-200 dark:border-slate-700 px-3">
+              <div className="flex gap-1 sm:ml-2 sm:mr-2 border-x border-slate-200 dark:border-slate-700 px-2 sm:px-3">
                 <button 
                   onClick={() => fileInputRef.current?.click()} 
                   className="p-2 text-slate-500 hover:text-blue-600 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all"
@@ -262,28 +283,29 @@ const App: React.FC = () => {
 
             <button 
               onClick={handlePrint} 
-              className="bg-slate-900 dark:bg-blue-600 text-white px-5 py-2 rounded-xl text-xs font-black uppercase flex items-center gap-2 hover:bg-slate-800 dark:hover:bg-blue-700 transition-colors shadow-sm active:scale-95"
+              className="bg-slate-900 dark:bg-blue-600 text-white px-3 sm:px-5 py-2 rounded-xl text-xs font-black uppercase flex items-center gap-2 hover:bg-slate-800 dark:hover:bg-blue-700 transition-colors shadow-sm active:scale-95"
+              title="Imprimir"
             >
-              <Printer size={16} /><span>Imprimir</span>
+              <Printer size={16} /><span className="hidden sm:inline">Imprimir</span>
             </button>
           </div>
         </header>
 
         {/* NOTA: print:p-0 remueve el padding que enjaulaba al reporte en la impresión */}
-        <main className="flex-grow p-6 lg:p-10 print:p-0 print:m-0">
+        <main className="flex-grow p-3 sm:p-6 lg:p-10 print:p-0 print:m-0">
           
           {/* =======================
               F-OP-04 ENSAYO PROGRAMA
               ======================= */}
           {activeForm === 'F-OP-04' && (
             activeTab === 'form' ? (
-              <div className="space-y-8 max-w-6xl mx-auto no-print">
+              <div className="space-y-6 sm:space-y-8 max-w-6xl mx-auto no-print">
                  {/* Encabezado F-OP-04 */}
-                 <section className="bg-white dark:bg-slate-900 p-8 rounded-[32px] border border-slate-200 dark:border-slate-800 shadow-sm">
+                 <section className="bg-white dark:bg-slate-900 p-4 sm:p-8 rounded-3xl sm:rounded-[32px] border border-slate-200 dark:border-slate-800 shadow-sm">
                     <h2 className="text-sm font-black uppercase tracking-widest text-slate-400 mb-6 flex items-center gap-3">
                       <FileText size={20} className="text-blue-500" /> Datos del Encabezado
                     </h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
                       <div className="lg:col-span-2">
                         <label className="block text-[10px] font-black text-slate-400 uppercase mb-2">Cliente</label>
                         <input type="text" className="w-full bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-white transition-colors focus:ring-2 focus:ring-blue-500 outline-none placeholder:text-slate-400" value={fop04Data.header.client} onChange={(e) => setFop04Data({...fop04Data, header: {...fop04Data.header, client: e.target.value}})} placeholder="Nombre del cliente" />
@@ -312,9 +334,9 @@ const App: React.FC = () => {
                     <TestTable tests={fop04Data.tests} onUpdate={(tests) => setFop04Data({...fop04Data, tests})} />
                  </section>
 
-                 <section className="bg-white dark:bg-slate-900 p-8 rounded-[32px] border border-slate-200 dark:border-slate-800 shadow-sm">
+                 <section className="bg-white dark:bg-slate-900 p-4 sm:p-8 rounded-3xl sm:rounded-[32px] border border-slate-200 dark:border-slate-800 shadow-sm">
                     <h2 className="text-sm font-black uppercase tracking-widest text-slate-400 mb-6 flex items-center gap-3"><UserCheck size={20} className="text-blue-500" /> Firmas de Aprobación</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
                       <div>
                         <label className="block text-[10px] font-black text-slate-400 uppercase mb-2">Realizó (Resp. Programación)</label>
                         <input type="text" className="w-full bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-white outline-none" value={fop04Data.footer.realizadoNombre} onChange={(e) => setFop04Data({...fop04Data, footer: {...fop04Data.footer, realizadoNombre: e.target.value}})} placeholder="Nombre" />
@@ -338,7 +360,7 @@ const App: React.FC = () => {
               </div>
             ) : (
               /* Contenedor de Previsualización - NOTA: print:bg-transparent print:p-0 remueve los marcos y fondos extra en la impresión */
-              <div className="max-w-6xl mx-auto bg-slate-200/50 dark:bg-slate-800 p-8 rounded-[32px] overflow-x-auto border border-slate-200 dark:border-slate-700 shadow-inner print:p-0 print:m-0 print:bg-transparent print:border-none print:shadow-none print:overflow-visible print:max-w-none">
+              <div className="max-w-6xl mx-auto bg-slate-200/50 dark:bg-slate-800 p-2 sm:p-8 rounded-2xl sm:rounded-[32px] overflow-x-auto border border-slate-200 dark:border-slate-700 shadow-inner print:p-0 print:m-0 print:bg-transparent print:border-none print:shadow-none print:overflow-visible print:max-w-none">
                 <ProtocolPreview data={fop04Data} customLogo={customLogo} />
               </div>
             )
@@ -348,8 +370,8 @@ const App: React.FC = () => {
               F-OP-01 CONTROL PROYECTO
               ======================= */}
           {activeForm === 'F-OP-01' && (
-            <div className="space-y-8 max-w-6xl mx-auto">
-               <section className="bg-white dark:bg-slate-900 p-8 rounded-[32px] border border-slate-200 dark:border-slate-800 shadow-sm no-print">
+            <div className="space-y-6 sm:space-y-8 max-w-6xl mx-auto">
+               <section className="bg-white dark:bg-slate-900 p-4 sm:p-8 rounded-3xl sm:rounded-[32px] border border-slate-200 dark:border-slate-800 shadow-sm no-print">
                   <h2 className="text-sm font-black uppercase tracking-widest text-slate-400 mb-6 flex items-center gap-3">
                     <BookOpen size={20} className="text-blue-500" /> Control de Proyectos (F-OP-01)
                   </h2>
